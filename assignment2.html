@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html>
-<style type="text/css">
-    canvas { background: blue; }
-</style>
 
+<head>
+  <title>CPT324 ASN2</title>
+  <link rel="icon" href="webgl_icon.ico" type="image/x-icon">
+</head>
+
+<link rel="stylesheet" href="style.css">
 <script id="vertex-shader" type="x-shader/x-vertex">
 
 attribute  vec4 vPosition;
@@ -107,52 +110,81 @@ void main()
 
 
 <body>
-<table border="5" align="center style" style="width:100%"><tr><td>
-	<center><H1>3D Polygon(Lighting,Shading,Mapping)</H1></center>
+  <table border="5" align="center style" style="width:100%">
+    <tr>
+      <td>
+        <center>
+          <H1>3D Polygon(Lighting,Shading,Mapping)</H1>
+        </center>
 
-	<th rowspan="2">
-	<br><button id= "Image1">Image 1</button> <button id= "Image2">Image 2</button> <button id= "Image3">Image 3</button></br>
-	<br><button id= "Image4">Image 4</button> <button id= "Image5">Image 5</button> <button id= "Image6">Image 6</button></br>
-	<br>Material Shininess</br><input id="materialshininess" type="range" min="1" max="100" value="10" step="1" oninput="MShininess.value=materialshininess.value"/>
-	<input id="MShininess" type="text" value="10" maxlength="1" size="3">
-	
-	<br>Light Position</br><input id="lightpositions" type="range" min="0.1" max="10" value="1.0" step="0.1" oninput="LPosition.value=lightpositions.value"/>
-	<input id="LPosition" type="text" value="1.0" maxlength="1" size="3">
-	
-	<br>Ambient Light</br><input id="ambientLight" type="range" min="0.1" max="1" value="0.1" step="0.1" oninput="LAmbient.value=ambientLight.value"/>
-	<input id="LAmbient" type="text" value="0.1" maxlength="1" size="3">
-	
-	<br>Diffuse Light</br><input id="diffuseLight" type="range" min="0.1" max="10" value="1.0" step="0.1" oninput="LDiffuse.value=diffuseLight.value"/>
-	<input id="LDiffuse" type="text" value="1.0" maxlength="1" size="3">
-	
-	<br>Specular Light</br><input id="specularLight" type="range" min="0.1" max="10" value="1.0" step="0.1" oninput="LSpecular.value=specularLight.value"/>
-	<input id="LSpecular" type="text" value="1.0" maxlength="1" size="3">
-	
-<tr align="center">
-	<div style="text-align: center;">
-	<td><table style="width:100%"></tr>
-	
-</div>
-<canvas id="gl-canvas" width="512" height="512">
-Oops ... your browser doesn't support the HTML5 canvas element
-</canvas>
+      <th rowspan="2">
+        <br><button id="Image1">Image 1</button> <button id="Image2">Image 2</button> <button id="Image3">Image
+          3</button></br>
+        <br><button id="Image4">Image 4</button> <button id="Image5">Image 5</button> <button id="Image6">Image
+          6</button></br>
+        <br><button id="Image7">Image 7</button> <button id="Image8">Image 8</button> <button id="Image9">Image
+          9</button></br>
+        <br>Material Shininess</br><input id="materialshininess" type="range" min="1" max="100" value="10" step="1"
+          oninput="MShininess.value=materialshininess.value" />
+        <input id="MShininess" type="text" value="10" maxlength="1" size="3">
 
-<img id = "cubeImage1" src = "image1.jpg" hidden></img>
-<img id = "sphereImage1" src = "image1.jpg" hidden></img>
+        <br>Light Position</br><input id="lightpositions" type="range" min="0.1" max="10" value="1.0" step="0.1"
+          oninput="LPosition.value=lightpositions.value" />
+        <input id="LPosition" type="text" value="1.0" maxlength="1" size="3">
 
-<img id = "cubeImage2" src = "image2.jpg" hidden></img>
-<img id = "sphereImage2" src = "image2.jpg" hidden></img>
+        <br>Ambient Light</br><input id="ambientLight" type="range" min="0.1" max="1" value="0.1" step="0.1"
+          oninput="LAmbient.value=ambientLight.value" />
+        <input id="LAmbient" type="text" value="0.1" maxlength="1" size="3">
 
-<img id = "cubeImage3" src = "image3.jpg" hidden></img>
-<img id = "sphereImage3" src = "image3.jpg" hidden></img>
+        <br>Diffuse Light</br><input id="diffuseLight" type="range" min="0.1" max="10" value="1.0" step="0.1"
+          oninput="LDiffuse.value=diffuseLight.value" />
+        <input id="LDiffuse" type="text" value="1.0" maxlength="1" size="3">
 
-<img id = "cubeImage4" src = "image4.jpg" hidden></img>
-<img id = "sphereImage4" src = "image4.jpg" hidden></img>
+        <br>Specular Light</br><input id="specularLight" type="range" min="0.1" max="10" value="1.0" step="0.1"
+          oninput="LSpecular.value=specularLight.value" />
+        <input id="LSpecular" type="text" value="1.0" maxlength="1" size="3">
+        <br>Frame Rendered Time</br>
+        <p id="delta_time"> 0 </p>
+        <br>FPS</br>
+        <p id="fps"> 0 </p>
 
-<img id = "cubeImage5" src = "image5.jpg" hidden></img>
-<img id = "sphereImage5" src = "image5.jpg" hidden></img>
+    <tr align="center">
+      <div style="text-align: center;">
+        <td>
+          <table style="width:100%">
+    </tr>
 
-<img id = "cubeImage6" src = "image6.jpg" hidden></img>
-<img id = "sphereImage6" src = "image6.jpg" hidden></img>
+    </div>
+    <canvas id="gl-canvas" width="512" height="512">
+      Oops ... your browser doesn't support the HTML5 canvas element
+    </canvas>
+
+    <img id="cubeImage1" src="texture/cloth1.jpg" hidden></img>
+    <img id="sphereImage1" src="texture/cloth2.jpg" hidden></img>
+
+    <img id="cubeImage2" src="texture/cloth3.jpg" hidden></img>
+    <img id="sphereImage2" src="texture/cloth4.jpg" hidden></img>
+
+    <img id="cubeImage3" src="texture/cloth5.jpg" hidden></img>
+    <img id="sphereImage3" src="texture/cloth6.jpg" hidden></img>
+
+    <img id="cubeImage4" src="texture/wood1.jpg" hidden></img>
+    <img id="sphereImage4" src="texture/wood2.jpg" hidden></img>
+
+    <img id="cubeImage5" src="texture/wood3.jpg" hidden></img>
+    <img id="sphereImage5" src="texture/wood4.jpg" hidden></img>
+
+    <img id="cubeImage6" src="texture/wood5.jpg" hidden></img>
+    <img id="sphereImage6" src="texture/wood6.jpg" hidden></img>
+
+    <img id="cubeImage7" src="texture/wood7.jpg" hidden></img>
+    <img id="sphereImage7" src="texture/wood8.jpg" hidden></img>
+
+    <img id="cubeImage8" src="texture/wood9.jpg" hidden></img>
+    <img id="sphereImage8" src="texture/metal3.jpg" hidden></img>
+
+    <img id="cubeImage9" src="texture/metal1.jpg" hidden></img>
+    <img id="sphereImage9" src="texture/metal2.jpg" hidden></img>
 </body>
+
 </html>
