@@ -52,6 +52,8 @@ var materialDiffuse = vec4(1.0, 0.8, 0.0, 1.0);
 var materialSpecular = vec4(1.0, 0.8, 0.0, 1.0);
 var materialShininess = 10.0;
 
+var rotationMatrix = rotate(rotationSpeed, 0, 1, 1);
+var rotation_animation = true;
 //Function for texture mapping for cube
 function configureCubeTexture(image) {
 	cubeTexture = gl.createTexture();
@@ -297,106 +299,64 @@ window.onload = function init() {
 	gl.enableVertexAttribArray(vTexCoord);
 
 	//Initialize the image for texture mapping
-	var cubeImage = document.getElementById("cubeImage1");
+	var cubeImage = document.getElementById("cloth1");
 	configureCubeTexture(cubeImage);
-
-	var sphereImage = document.getElementById("sphereImage1");
+	var sphereImage = document.getElementById("cloth1");
 	configureSphereTexture(sphereImage);
 
 	//Image for texture mapping
-	document.getElementById("Image1").onclick = function () {
-		cubeImage = document.getElementById("cubeImage1");
-		configureCubeTexture(cubeImage);
+	var cubeImageChooser = document.getElementById("cubeImage");
+	var sphereImageChooser = document.getElementById("sphereImage");
+	var options = ["cloth", "wood", "metal"];
+	options.forEach(insertoption);
+	function insertoption(item) {
+		var maxNum = 1;
+		if ("cloth" == item) maxNum = 6;
+		else if (item == "wood") maxNum = 9;
+		else if (item == "metal") maxNum = 3;
+		for (var i = 1; i <= maxNum; i++) {
+			var value = item + i;
+			var option1 = document.createElement("option");
+			var option2 = document.createElement("option");
+			option1.value = option2.value = value;
+			option1.text = option2.text = value;
+			cubeImageChooser.add(option1);
+			sphereImageChooser.add(option2);
+		}
+	}
 
-		sphereImage = document.getElementById("sphereImage1");
-		configureSphereTexture(sphereImage);
+	document.getElementById("cubeImage").onchange = function () {
+		var chooseid = document.getElementById("cubeImage").value;
+		cubeImage = document.getElementById(chooseid);
+		configureCubeTexture(cubeImage);
 	};
-
-	document.getElementById("Image2").onclick = function () {
-		cubeImage = document.getElementById("cubeImage2");
-		configureCubeTexture(cubeImage);
-
-		sphereImage = document.getElementById("sphereImage2");
-		configureSphereTexture(sphereImage);
-	};
-
-	document.getElementById("Image3").onclick = function () {
-		cubeImage = document.getElementById("cubeImage3");
-		configureCubeTexture(cubeImage);
-
-		sphereImage = document.getElementById("sphereImage3");
-		configureSphereTexture(sphereImage);
-	};
-
-	document.getElementById("Image4").onclick = function () {
-		cubeImage = document.getElementById("cubeImage4");
-		configureCubeTexture(cubeImage);
-
-		sphereImage = document.getElementById("sphereImage4");
-		configureSphereTexture(sphereImage);
-	};
-
-	document.getElementById("Image5").onclick = function () {
-		cubeImage = document.getElementById("cubeImage5");
-		configureCubeTexture(cubeImage);
-
-		sphereImage = document.getElementById("sphereImage5");
-		configureSphereTexture(sphereImage);
-	};
-
-	document.getElementById("Image6").onclick = function () {
-		cubeImage = document.getElementById("cubeImage6");
-		configureCubeTexture(cubeImage);
-
-		sphereImage = document.getElementById("sphereImage6");
-		configureSphereTexture(sphereImage);
-	};
-
-	document.getElementById("Image7").onclick = function () {
-		cubeImage = document.getElementById("cubeImage7");
-		configureCubeTexture(cubeImage);
-
-		sphereImage = document.getElementById("sphereImage7");
-		configureSphereTexture(sphereImage);
-	};
-
-	document.getElementById("Image8").onclick = function () {
-		cubeImage = document.getElementById("cubeImage8");
-		configureCubeTexture(cubeImage);
-
-		sphereImage = document.getElementById("sphereImage8");
-		configureSphereTexture(sphereImage);
-	};
-
-	document.getElementById("Image9").onclick = function () {
-		cubeImage = document.getElementById("cubeImage9");
-		configureCubeTexture(cubeImage);
-
-		sphereImage = document.getElementById("sphereImage9");
+	document.getElementById("sphereImage").onchange = function () {
+		var chooseid = document.getElementById("sphereImage").value;
+		sphereImage = document.getElementById(chooseid);
 		configureSphereTexture(sphereImage);
 	};
 
 	//Function to get the material shininess
-	document.getElementById("materialshininess").onchange = function () {
+	function change_materialShininess() {
 		materialShininess = document.getElementById("materialshininess").value;
 		gl.uniform1f(
 			gl.getUniformLocation(program, "shininess"),
 			materialShininess
 		);
-	};
+	}
 
 	//Function to get the light position
-	document.getElementById("lightpositions").onchange = function () {
+	function change_lightPositions() {
 		var x = document.getElementById("lightpositions").value;
 		lightPosition = vec4(x, 1.0, 1.0, 0.0);
 		gl.uniform4fv(
 			gl.getUniformLocation(program, "lightPosition"),
 			flatten(lightPosition)
 		);
-	};
+	}
 
 	//Function to get the ambient light
-	document.getElementById("ambientLight").onchange = function () {
+	function change_ambientLight() {
 		var x = document.getElementById("ambientLight").value;
 		lightAmbient = vec4(x, x, 0.1, 1.0);
 		ambientProduct = mult(lightAmbient, materialAmbient);
@@ -404,10 +364,10 @@ window.onload = function init() {
 			gl.getUniformLocation(program, "ambientProduct"),
 			flatten(ambientProduct)
 		);
-	};
+	}
 
 	//Function to get the diffuse light
-	document.getElementById("diffuseLight").onchange = function () {
+	function change_diffuseLight() {
 		var x = document.getElementById("diffuseLight").value;
 		lightDiffuse = vec4(x, x, 0.1, 1.0);
 		diffuseProduct = mult(lightDiffuse, materialDiffuse);
@@ -415,10 +375,10 @@ window.onload = function init() {
 			gl.getUniformLocation(program, "diffuseProduct"),
 			flatten(diffuseProduct)
 		);
-	};
+	}
 
 	//Function to get the specular light
-	document.getElementById("specularLight").onchange = function () {
+	function change_specularProduct() {
 		var x = document.getElementById("specularLight").value;
 		lightSpecular = vec4(x, x, 0.1, 1.0);
 		specularProduct = mult(lightSpecular, materialSpecular);
@@ -426,7 +386,55 @@ window.onload = function init() {
 			gl.getUniformLocation(program, "specularProduct"),
 			flatten(specularProduct)
 		);
-	};
+	}
+
+	function change_rotation() {
+		rotationSpeed = document.getElementById("rotaionSpeedValue").value;
+		rotationX = document.getElementById("RotateX").value;
+		rotationY = document.getElementById("RotateY").value;
+		rotationZ = document.getElementById("RotateZ").value;
+		rotationMatrix = rotate(rotationSpeed, rotationX, rotationY, rotationZ);
+		if (
+			(rotationX == 0 && rotationY == 0 && rotationZ == 0) ||
+			rotationSpeed == 0
+		)
+			rotation_animation = false;
+		else rotation_animation = true;
+	}
+
+	function change_Projection() {
+		left = Number(document.getElementById("leftProjection").value);
+		right = Number(document.getElementById("rightProjection").value);
+		itop = Number(document.getElementById("topProjection").value);
+		bottom = Number(document.getElementById("bottomProjection").value);
+		near = Number(document.getElementById("nearProjection").value);
+		far = Number(document.getElementById("farProjection").value);
+		projectionMatrix = ortho(left, right, bottom, itop, near, far);
+	}
+
+	document.getElementById(
+		"materialshininess"
+	).onchange = change_materialShininess;
+	document.getElementById("MShininess").onchange = change_materialShininess;
+	document.getElementById("lightpositions").onchange = change_lightPositions;
+	document.getElementById("LPosition").onchange = change_lightPositions;
+	document.getElementById("ambientLight").onchange = change_ambientLight;
+	document.getElementById("LAmbient").onchange = change_ambientLight;
+	document.getElementById("diffuseLight").onchange = change_diffuseLight;
+	document.getElementById("LDiffuse").onchange = change_diffuseLight;
+	document.getElementById("specularLight").onchange = change_specularProduct;
+	document.getElementById("LSpecular").onchange = change_specularProduct;
+	document.getElementById("rotationSpeedSlider").onchange = change_rotation;
+	document.getElementById("rotaionSpeedValue").onchange = change_rotation;
+	document.getElementById("RotateX").onchange = change_rotation;
+	document.getElementById("RotateY").onchange = change_rotation;
+	document.getElementById("RotateZ").onchange = change_rotation;
+	document.getElementById("leftProjection").onchange = change_Projection;
+	document.getElementById("rightProjection").onchange = change_Projection;
+	document.getElementById("topProjection").onchange = change_Projection;
+	document.getElementById("bottomProjection").onchange = change_Projection;
+	document.getElementById("nearProjection").onchange = change_Projection;
+	document.getElementById("farProjection").onchange = change_Projection;
 
 	gl.uniform4fv(
 		gl.getUniformLocation(program, "ambientProduct"),
@@ -445,9 +453,8 @@ window.onload = function init() {
 		flatten(lightPosition)
 	);
 	gl.uniform1f(gl.getUniformLocation(program, "shininess"), materialShininess);
-
-	//window.requestAnimFrame(render);
-	requestAnimationFrame(render);
+	projectionMatrix = ortho(left, right, bottom, itop, near, far);
+	window.requestAnimFrame(render);
 };
 
 var past = 0;
@@ -457,25 +464,27 @@ function value_updated_to_page(delta_Time) {
 
 	document.getElementById("fps").innerHTML = fps;
 }
+
 var render = function (timestamp) {
 	timestamp *= 0.001;
 	elapsed = timestamp - past;
 	past = timestamp;
-	value_updated_to_page(elapsed);
+	if (elapsed > 0) value_updated_to_page(elapsed);
 
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
 	projectionMatrix = ortho(left, right, bottom, itop, near, far);
 	gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 
 	//draw cube, 36 points;
 	if (start) {
-		modelViewMatrix = mult(rotate(-3, 1, 1, 1), modelViewMatrix);
+		modelViewMatrix = mult(rotationMatrix, modelViewMatrix);
 		modelViewMatrix = mult(translate(2.5, 0, 0), modelViewMatrix);
 		start = false;
 	} else {
 		modelViewMatrix = mult(translate(-2.5, 0, 0), modelViewMatrix);
-		modelViewMatrix = mult(rotate(-3, 1, 1, 1), modelViewMatrix);
+		if (rotation_animation) {
+			modelViewMatrix = mult(rotationMatrix, modelViewMatrix);
+		}
 		modelViewMatrix = mult(translate(2.5, 0, 0), modelViewMatrix);
 	}
 	gl.uniform1i(gl.getUniformLocation(program, "texMode"), 0);
@@ -484,12 +493,13 @@ var render = function (timestamp) {
 
 	// draw sphere, depends on the number of iterations
 	gl.uniform1i(gl.getUniformLocation(program, "texMode"), 1);
-	modelViewMatrix2 = mult(rotate(rotationSpeed, 0, 1, 1), modelViewMatrix2);
+	if (rotation_animation) {
+		modelViewMatrix2 = mult(rotationMatrix, modelViewMatrix2);
+	}
 	gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix2));
 	//console.log(pointsArray.length);
 	for (var i = numVertices; i < index + numVertices; i += 3) {
 		gl.drawArrays(gl.TRIANGLES, i, 3);
 	}
-	//window.requestAnimFrame(render);
-	requestAnimationFrame(render);
+	window.requestAnimFrame(render);
 };

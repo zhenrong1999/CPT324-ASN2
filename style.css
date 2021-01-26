@@ -1,1 +1,6 @@
-canvas { background: blue; }
+canvas {
+	background: blue;
+}
+.keyboard_number_input {
+	width: 50px;
+}

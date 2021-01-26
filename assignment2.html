@@ -1,190 +1,372 @@
 <!DOCTYPE html>
 <html>
+	<head>
+		<title>CPT324 ASN2</title>
+		<link rel="icon" href="webgl_icon.ico" type="image/x-icon" />
+	</head>
 
-<head>
-  <title>CPT324 ASN2</title>
-  <link rel="icon" href="webgl_icon.ico" type="image/x-icon">
-</head>
+	<link rel="stylesheet" href="style.css" />
+	<script id="vertex-shader" type="x-shader/x-vertex">
 
-<link rel="stylesheet" href="style.css">
-<script id="vertex-shader" type="x-shader/x-vertex">
+		attribute  vec4 vPosition;
+		attribute  vec4 vColor;
+		attribute  vec2 vTexCoord;
+		attribute vec4 vNormal;
 
-attribute  vec4 vPosition;
-attribute  vec4 vColor;
-attribute  vec2 vTexCoord;
-attribute vec4 vNormal;
+		// variables to be passed to fragment shader
+		varying vec4 fColor;
+		varying vec2 fTexCoord;
 
-// variables to be passed to fragment shader
-varying vec4 fColor;
-varying vec2 fTexCoord;
+		uniform mat4 modelViewMatrix;
+		uniform mat4 projectionMatrix;
+		uniform vec4 lightPosition;
+		uniform mediump int texMode;
+		//lighting
+		uniform vec4 ambientProduct;
+		uniform vec4 diffuseProduct;
+		uniform vec4 specularProduct;
+		uniform float shininess;
 
-uniform mat4 modelViewMatrix;
-uniform mat4 projectionMatrix;
-uniform vec4 lightPosition;
-uniform mediump int texMode;
-//lighting
-uniform vec4 ambientProduct;
-uniform vec4 diffuseProduct;
-uniform vec4 specularProduct;
-uniform float shininess;
+		void main()
+		{
+		    fColor = vColor;
+		    fTexCoord = vTexCoord;
+		    //lighting
+		    vec3 pos = -(modelViewMatrix * vPosition).xyz;
+		    vec3 light = lightPosition.xyz;
+		    vec3 L = normalize( light - pos );
+		    vec3 E =  -pos;
+		    vec3 N = normalize( (modelViewMatrix*vNormal).xyz);
 
-void main()
-{
-    fColor = vColor;
-    fTexCoord = vTexCoord;
-    //lighting
-    vec3 pos = -(modelViewMatrix * vPosition).xyz;
-    vec3 light = lightPosition.xyz;
-    vec3 L = normalize( light - pos );
-    vec3 E =  -pos;
-    vec3 N = normalize( (modelViewMatrix*vNormal).xyz);
+		    if (texMode == 0) {
+		      // you can have diffrent diffuseProduct, specularProduct, shininess, etc;
 
-    if (texMode == 0) {
-      // you can have diffrent diffuseProduct, specularProduct, shininess, etc;
+		        vec3 H = normalize( L + E );
+		        vec4 ambient = ambientProduct;
 
-        vec3 H = normalize( L + E );
-        vec4 ambient = ambientProduct;
+		        float Kd = max( dot(L, N), 0.0 );
+		        vec4  diffuse = Kd*diffuseProduct;
 
-        float Kd = max( dot(L, N), 0.0 );
-        vec4  diffuse = Kd*diffuseProduct;
+		        float Ks = pow( max(dot(N, H), 0.0), shininess );
+		        vec4  specular = Ks * specularProduct;
 
-        float Ks = pow( max(dot(N, H), 0.0), shininess );
-        vec4  specular = Ks * specularProduct;
+		        if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
 
-        if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
+		        fColor = ambient + diffuse +specular;
+		        fColor.a = 1.0;
 
-        fColor = ambient + diffuse +specular;
-        fColor.a = 1.0;
+		        gl_Position = projectionMatrix * modelViewMatrix * vPosition;
 
-        gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+		    } else
+		    if (texMode == 1) {
+		      vec3 H = normalize( L + E );
+		      vec4 ambient = ambientProduct;
 
-    } else
-    if (texMode == 1) {
-      vec3 H = normalize( L + E );
-      vec4 ambient = ambientProduct;
+		      float Kd = max( dot(L, N), 0.0 );
+		      vec4  diffuse = Kd*diffuseProduct;
 
-      float Kd = max( dot(L, N), 0.0 );
-      vec4  diffuse = Kd*diffuseProduct;
+		      float Ks = pow( max(dot(N, H), 0.0), shininess );
+		      vec4  specular = Ks * specularProduct;
 
-      float Ks = pow( max(dot(N, H), 0.0), shininess );
-      vec4  specular = Ks * specularProduct;
+		      if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
 
-      if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
+		      fColor = ambient + diffuse +specular;
+		      fColor.a = 1.0;
 
-      fColor = ambient + diffuse +specular;
-      fColor.a = 1.0;
+		      gl_Position = projectionMatrix * modelViewMatrix * vPosition;
 
-      gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+		    }
+		}
+	</script>
 
-    }
-}
-</script>
+	<script id="fragment-shader" type="x-shader/x-fragment">
 
-<script id="fragment-shader" type="x-shader/x-fragment">
+		precision mediump float;
 
-precision mediump float;
+		varying vec4 fColor;
+		varying  vec2 fTexCoord;
 
-varying vec4 fColor;
-varying  vec2 fTexCoord;
+		uniform sampler2D cubeTexture,sphereTexture;
+		uniform int texMode;
 
-uniform sampler2D cubeTexture,sphereTexture;
-uniform int texMode;
+		void main()
+		{
 
-void main()
-{
+		  if (texMode == 0) {
+				gl_FragColor = fColor * texture2D( cubeTexture , fTexCoord );
+			} else
+			if (texMode == 1) {
+				gl_FragColor = fColor * texture2D( sphereTexture , fTexCoord );
+			}
 
-  if (texMode == 0) {
-		gl_FragColor = fColor * texture2D( cubeTexture , fTexCoord );
-	} else
-	if (texMode == 1) {
-		gl_FragColor = fColor * texture2D( sphereTexture , fTexCoord );
-	}
+		}
+	</script>
 
-}
-</script>
+	<script type="text/javascript" src="Common/webgl-utils.js"></script>
+	<script type="text/javascript" src="Common/initShaders.js"></script>
+	<script type="text/javascript" src="Common/MV.js"></script>
+	<script type="text/javascript" src="assignment2.js"></script>
 
-<script type="text/javascript" src="Common/webgl-utils.js"></script>
-<script type="text/javascript" src="Common/initShaders.js"></script>
-<script type="text/javascript" src="Common/MV.js"></script>
-<script type="text/javascript" src="assignment2.js"></script>
+	<body>
+		<table border="5" align="center style" style="width: 100%">
+			<tr>
+				<td>
+					<center>
+						<h1>3D Polygon(Lighting,Shading,Mapping)</h1>
+					</center>
+				</td>
 
+				<th rowspan="2">
+					<br />Choose texture
 
-<body>
-  <table border="5" align="center style" style="width:100%">
-    <tr>
-      <td>
-        <center>
-          <H1>3D Polygon(Lighting,Shading,Mapping)</H1>
-        </center>
+					<br />
+					<label for="sphereImage">for sphere:</label>
+					<select name="sphereImage" id="sphereImage"></select>
+					<label for="cubeImage">for cube:</label>
+					<select name="cubeImage" id="cubeImage"></select>
 
-      <th rowspan="2">
-        <br><button id="Image1">Image 1</button> <button id="Image2">Image 2</button> <button id="Image3">Image
-          3</button></br>
-        <br><button id="Image4">Image 4</button> <button id="Image5">Image 5</button> <button id="Image6">Image
-          6</button></br>
-        <br><button id="Image7">Image 7</button> <button id="Image8">Image 8</button> <button id="Image9">Image
-          9</button></br>
-        <br>Material Shininess</br><input id="materialshininess" type="range" min="1" max="100" value="10" step="1"
-          oninput="MShininess.value=materialshininess.value" />
-        <input id="MShininess" type="text" value="10" maxlength="1" size="3">
+					<br />Rotation Along Axises <br /><label for="RotateX">X: </label>
+					<input
+						class="keyboard_number_input"
+						id="RotateX"
+						type="number"
+						value="0"
+						step="0.1"
+					/><label for="RotateY">Y: </label>
+					<input
+						class="keyboard_number_input"
+						id="RotateY"
+						type="number"
+						value="1"
+						step="0.1"
+					/><label for="RotateZ">Z: </label>
+					<input
+						class="keyboard_number_input"
+						id="RotateZ"
+						type="number"
+						value="1"
+						step="0.1"
+					/>
 
-        <br>Light Position</br><input id="lightpositions" type="range" min="0.1" max="10" value="1.0" step="0.1"
-          oninput="LPosition.value=lightpositions.value" />
-        <input id="LPosition" type="text" value="1.0" maxlength="1" size="3">
+					<br />Rotation Speed
+					<input
+						id="rotationSpeedSlider"
+						type="range"
+						min="0"
+						max="20"
+						value="3"
+						step="0.1"
+						oninput="rotaionSpeedValue.value=this.value"
+					/>
+					<input
+						class="keyboard_number_input"
+						id="rotaionSpeedValue"
+						type="number"
+						value="3"
+						min="0"
+						max="20"
+						value="3"
+						step="0.1"
+						oninput="rotationSpeedSlider.value=this.value"
+					/>
 
-        <br>Ambient Light</br><input id="ambientLight" type="range" min="0.1" max="1" value="0.1" step="0.1"
-          oninput="LAmbient.value=ambientLight.value" />
-        <input id="LAmbient" type="text" value="0.1" maxlength="1" size="3">
+					<br />Material Shininess
+					<input
+						id="materialshininess"
+						type="range"
+						min="0"
+						max="100"
+						value="10"
+						step="1"
+						oninput="MShininess.value=this.value"
+					/>
+					<input
+						class="keyboard_number_input"
+						id="MShininess"
+						type="number"
+						min="0"
+						max="100"
+						value="10"
+						step="1"
+						oninput="materialshininess.value=this.value"
+					/>
 
-        <br>Diffuse Light</br><input id="diffuseLight" type="range" min="0.1" max="10" value="1.0" step="0.1"
-          oninput="LDiffuse.value=diffuseLight.value" />
-        <input id="LDiffuse" type="text" value="1.0" maxlength="1" size="3">
+					<br />Light Position
+					<input
+						id="lightpositions"
+						type="range"
+						min="0"
+						max="100"
+						value="1.0"
+						step="0.1"
+						oninput="LPosition.value=this.value"
+					/>
+					<input
+						class="keyboard_number_input"
+						id="LPosition"
+						type="number"
+						min="0"
+						max="100"
+						value="1.0"
+						step="0.1"
+						oninput="lightpositions.value=this.value"
+					/>
 
-        <br>Specular Light</br><input id="specularLight" type="range" min="0.1" max="10" value="1.0" step="0.1"
-          oninput="LSpecular.value=specularLight.value" />
-        <input id="LSpecular" type="text" value="1.0" maxlength="1" size="3">
-        <br>Frame Rendered Time</br>
-        <p id="delta_time"> 0 </p>
-        <br>FPS</br>
-        <p id="fps"> 0 </p>
+					<br />Ambient Light
+					<input
+						id="ambientLight"
+						type="range"
+						min="0.1"
+						max="1"
+						value="0.1"
+						step="0.1"
+						oninput="LAmbient.value=this.value"
+					/>
+					<input
+						class="keyboard_number_input"
+						id="LAmbient"
+						type="number"
+						min="0.1"
+						max="1"
+						value="0.1"
+						step="0.1"
+						oninput="ambientLight.value=this.value"
+					/>
 
-    <tr align="center">
-      <div style="text-align: center;">
-        <td>
-          <table style="width:100%">
-    </tr>
+					<br />Diffuse Light
+					<input
+						id="diffuseLight"
+						type="range"
+						min="0.1"
+						max="10"
+						value="1.0"
+						step="0.1"
+						oninput="LDiffuse.value=this.value"
+					/>
+					<input
+						class="keyboard_number_input"
+						id="LDiffuse"
+						type="number"
+						min="0.1"
+						max="10"
+						value="1.0"
+						step="0.1"
+						oninput="diffuseLight.value=this.value"
+					/>
 
-    </div>
-    <canvas id="gl-canvas" width="512" height="512">
-      Oops ... your browser doesn't support the HTML5 canvas element
-    </canvas>
+					<br />Specular Light
+					<input
+						id="specularLight"
+						type="range"
+						min="0.1"
+						max="10"
+						value="1.0"
+						step="0.1"
+						oninput="LSpecular.value=this.value"
+					/>
+					<input
+						class="keyboard_number_input"
+						id="LSpecular"
+						type="number"
+						min="0.1"
+						max="10"
+						value="1.0"
+						step="0.1"
+						oninput="specularLight.value=this.value"
+					/>
+					<div hidden>
+						<br />Projection <br />
+						Note: left != right top != bottom near!=far
+						<br />
+						<label for="leftProjection">Left: </label>
+						<input
+							class="keyboard_number_input"
+							id="leftProjection"
+							type="number"
+							value="-2.0"
+							step="0.1"
+						/><label for="rightProjection">Right: </label>
+						<input
+							class="keyboard_number_input"
+							id="rightProjection"
+							type="number"
+							value="5.0"
+							step="0.1"
+						/>
+						<br />
+						<label for="topProjection">Top: </label>
+						<input
+							class="keyboard_number_input"
+							id="topProjection"
+							type="number"
+							value="3.0"
+							step="0.1"
+						/><label for="bottomProjection">Bottom: </label>
+						<input
+							class="keyboard_number_input"
+							id="bottomProjection"
+							type="number"
+							value="-3.0"
+							step="0.1"
+						/><br />
+						<label for="nearProjection">Near: </label>
+						<input
+							class="keyboard_number_input"
+							id="nearProjection"
+							type="number"
+							value="3.0"
+							step="0.1"
+						/><label for="farProjection">Far: </label>
+						<input
+							class="keyboard_number_input"
+							id="farProjection"
+							type="number"
+							value="-3.0"
+							step="0.1"
+						/>
+					</div>
+					<br />Frame Rendered Time
 
-    <img id="cubeImage1" src="texture/cloth1.jpg" hidden></img>
-    <img id="sphereImage1" src="texture/cloth2.jpg" hidden></img>
+					<p id="delta_time">0</p>
+					<br />FPS
 
-    <img id="cubeImage2" src="texture/cloth3.jpg" hidden></img>
-    <img id="sphereImage2" src="texture/cloth4.jpg" hidden></img>
+					<p id="fps">0</p>
 
-    <img id="cubeImage3" src="texture/cloth5.jpg" hidden></img>
-    <img id="sphereImage3" src="texture/cloth6.jpg" hidden></img>
+					<tr align="center">
+						<div style="text-align: center">
+							<td>
+								<table style="width: 100%">
+									<canvas id="gl-canvas" width="512" height="512">
+										Oops ... your browser doesn't support the HTML5 canvas
+										element
+									</canvas>
 
-    <img id="cubeImage4" src="texture/wood1.jpg" hidden></img>
-    <img id="sphereImage4" src="texture/wood2.jpg" hidden></img>
+									<img id="cloth1" src="texture/cloth1.jpg" hidden />
+									<img id="cloth2" src="texture/cloth2.jpg" hidden />
+									<img id="cloth3" src="texture/cloth3.jpg" hidden />
+									<img id="cloth4" src="texture/cloth4.jpg" hidden />
+									<img id="cloth5" src="texture/cloth5.jpg" hidden />
+									<img id="cloth6" src="texture/cloth6.jpg" hidden />
 
-    <img id="cubeImage5" src="texture/wood3.jpg" hidden></img>
-    <img id="sphereImage5" src="texture/wood4.jpg" hidden></img>
+									<img id="wood1" src="texture/wood1.jpg" hidden />
+									<img id="wood2" src="texture/wood2.jpg" hidden />
+									<img id="wood3" src="texture/wood3.jpg" hidden />
+									<img id="wood4" src="texture/wood4.jpg" hidden />
+									<img id="wood5" src="texture/wood5.jpg" hidden />
+									<img id="wood6" src="texture/wood6.jpg" hidden />
+									<img id="wood7" src="texture/wood7.jpg" hidden />
+									<img id="wood8" src="texture/wood8.jpg" hidden />
+									<img id="wood9" src="texture/wood9.jpg" hidden />
 
-    <img id="cubeImage6" src="texture/wood5.jpg" hidden></img>
-    <img id="sphereImage6" src="texture/wood6.jpg" hidden></img>
-
-    <img id="cubeImage7" src="texture/wood7.jpg" hidden></img>
-    <img id="sphereImage7" src="texture/wood8.jpg" hidden></img>
-
-    <img id="cubeImage8" src="texture/wood9.jpg" hidden></img>
-    <img id="sphereImage8" src="texture/metal3.jpg" hidden></img>
-
-    <img id="cubeImage9" src="texture/metal1.jpg" hidden></img>
-    <img id="sphereImage9" src="texture/metal2.jpg" hidden></img>
-</body>
-
+									<img id="metal1" src="texture/metal1.jpg" hidden />
+									<img id="metal2" src="texture/metal2.jpg" hidden />
+									<img id="metal3" src="texture/metal3.jpg" hidden />
+								</table>
+							</td>
+						</div>
+					</tr>
+				</th>
+			</tr>
+		</table>
+	</body>
 </html>
