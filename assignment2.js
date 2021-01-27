@@ -1,11 +1,11 @@
 var canvas;
 var gl;
-var start = true;
 
 var modelViewMatrixLoc = mat4();
 var projectionMatrixLoc = mat4();
 var modelViewMatrix = mat4(); //cube;
 var modelViewMatrix2 = mat4(); //sphere;
+var modelViewMatrix3 = mat4(); //pyramid
 var projectionMatrix = mat4();
 
 var left = -2.0;
@@ -30,7 +30,7 @@ var cubeTexture; //variable to store texture of cube
 var numVertices = 36;
 
 //sphere
-var numTimesToSubdivide = 4; //number of time of subdivision
+var numTimesToSubdivide = 6; //number of time of subdivision
 var sphereScale = 3; // decide image bitmap scale
 var sphereTexture; //variable to store texture of sphere
 var rotationSpeed = 3; //Rotation speed for sphere
@@ -38,6 +38,8 @@ var rotationSpeed = 3; //Rotation speed for sphere
 var ambientProduct; //lightAmbient*materialAmbient
 var diffuseProduct; //lightDiffuse*materialDiffuse
 var specularProduct; // lightSpecular*materialSpecular
+
+var pyramidTexture;
 
 var texCoord = [vec2(0, 0), vec2(0, 1), vec2(1, 1), vec2(1, 0)];
 
@@ -52,8 +54,26 @@ var materialDiffuse = vec4(1.0, 0.8, 0.0, 1.0);
 var materialSpecular = vec4(1.0, 0.8, 0.0, 1.0);
 var materialShininess = 10.0;
 
+var play = true;
+var mode_change = 0;
 var rotationMatrix = rotate(rotationSpeed, 0, 1, 1);
 var rotation_animation = true;
+var state = {
+	dragging: false,
+	mouse: {
+		lastX: -1,
+		lastY: -1,
+	},
+	app: {
+		angle: {
+			x: 0,
+			y: 0,
+		},
+	},
+	cubeShown: true,
+	sphereShown: true,
+	pyramidShown: true,
+};
 //Function for texture mapping for cube
 function configureCubeTexture(image) {
 	cubeTexture = gl.createTexture();
@@ -76,7 +96,6 @@ function configureCubeTexture(image) {
 function quad(a, b, c, d) {
 	var t1 = subtract(vertices[b], vertices[a]);
 	var t2 = subtract(vertices[c], vertices[a]);
-	//var normal = cross(t2, t1);
 	var normal = vec4(cross(t2, t1));
 	normal = normalize(normal);
 
@@ -200,6 +219,23 @@ function configureSphereTexture(image) {
 	gl.uniform1i(gl.getUniformLocation(program, "sphereTexture"), 1);
 }
 
+function configurePyramidTexture(image) {
+	pyramidTexture = gl.createTexture();
+	gl.activeTexture(gl.TEXTURE0 + 2);
+	gl.bindTexture(gl.TEXTURE_2D, pyramidTexture);
+	gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
+	gl.generateMipmap(gl.TEXTURE_2D);
+	gl.texParameteri(
+		gl.TEXTURE_2D,
+		gl.TEXTURE_MIN_FILTER,
+		gl.NEAREST_MIPMAP_LINEAR
+	);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+	gl.uniform1i(gl.getUniformLocation(program, "pyramidTexture"), 2);
+}
+
 var vertices = [
 	//cube
 	vec4(-0.5, -0.5, 0.5, 1.0),
@@ -216,6 +252,14 @@ var vertices = [
 	vec4(0.0, 0.942809, 0.333333, 1),
 	vec4(-0.816497, -0.471405, 0.333333, 1),
 	vec4(0.816497, -0.471405, 0.333333, 1),
+
+	//pyramid
+
+	vec4(0.0, 0.0, -1.0, 1),
+	vec4(0.0, 0.9428, 0.3333, 1),
+	vec4(-0.8165, -0.4714, 0.3333, 1),
+	vec4(0.8165, -0.4714, 0.3333, 1),
+	//vec4(0.816497, -0.471405, -0.333333, 1),
 ];
 
 var vertexColors = [
@@ -228,6 +272,66 @@ var vertexColors = [
 	vec4(0.0, 1.0, 1.0, 1.0), // white
 	vec4(0.0, 1.0, 1.0, 1.0), // cyan
 ];
+
+var pyramid = {
+	texCoord: [vec2(0, 0), vec2(0, 1), vec2(0.5, 1)],
+	triangle: function (a, b, c, color) {
+		var t1 = subtract(b, a);
+		var t2 = subtract(c, a);
+		var normal = vec4(cross(t2, t1));
+		normal = normalize(normal);
+		normalsArray.push(normal);
+		normalsArray.push(normal);
+		normalsArray.push(normal);
+
+		// add colors and vertices for one triangle
+		colorsArray.push(vertexColors[color]);
+		pointsArray.push(a);
+		texCoordsArray.push(pyramid.texCoord[0]);
+		colorsArray.push(vertexColors[color]);
+		pointsArray.push(b);
+		texCoordsArray.push(pyramid.texCoord[1]);
+		colorsArray.push(vertexColors[color]);
+		pointsArray.push(c);
+		texCoordsArray.push(pyramid.texCoord[2]);
+	},
+
+	tetra: function (a, b, c, d) {
+		// tetrahedron with each side using
+		// a different color
+
+		pyramid.triangle(a, c, b, 0);
+		pyramid.triangle(a, c, d, 1);
+		pyramid.triangle(a, b, d, 2);
+		pyramid.triangle(b, c, d, 3);
+	},
+
+	divideTetra: function (a, b, c, d, count) {
+		// check for end of recursion
+
+		if (count === 0) {
+			pyramid.tetra(a, b, c, d);
+		}
+
+		// find midpoints of sides
+		// divide four smaller tetrahedra
+		else {
+			var ab = mix(a, b, 0.5);
+			var ac = mix(a, c, 0.5);
+			var ad = mix(a, d, 0.5);
+			var bc = mix(b, c, 0.5);
+			var bd = mix(b, d, 0.5);
+			var cd = mix(c, d, 0.5);
+
+			--count;
+
+			pyramid.divideTetra(a, ab, ac, ad, count);
+			pyramid.divideTetra(ab, b, bc, bd, count);
+			pyramid.divideTetra(ac, bc, c, cd, count);
+			pyramid.divideTetra(ad, bd, cd, d, count);
+		}
+	},
+};
 
 window.onload = function init() {
 	canvas = document.getElementById("gl-canvas");
@@ -253,6 +357,8 @@ window.onload = function init() {
 		vertices[11],
 		numTimesToSubdivide
 	);
+
+	pyramid.tetra(vertices[12], vertices[13], vertices[14], vertices[15]);
 
 	//  Load shaders and initialize attribute buffers
 
@@ -301,12 +407,14 @@ window.onload = function init() {
 	//Initialize the image for texture mapping
 	var cubeImage = document.getElementById("cloth1");
 	configureCubeTexture(cubeImage);
-	var sphereImage = document.getElementById("cloth1");
+	var sphereImage = document.getElementById("metal1");
 	configureSphereTexture(sphereImage);
-
+	var pyramidImage = document.getElementById("wood1");
+	configurePyramidTexture(pyramidImage);
 	//Image for texture mapping
 	var cubeImageChooser = document.getElementById("cubeImage");
 	var sphereImageChooser = document.getElementById("sphereImage");
+	var pyramidImageChooser = document.getElementById("pyramidImage");
 	var options = ["cloth", "wood", "metal"];
 	options.forEach(insertoption);
 	function insertoption(item) {
@@ -318,24 +426,31 @@ window.onload = function init() {
 			var value = item + i;
 			var option1 = document.createElement("option");
 			var option2 = document.createElement("option");
-			option1.value = option2.value = value;
-			option1.text = option2.text = value;
+			var option3 = document.createElement("option");
+			option1.value = option2.value = option3.value = value;
+			option1.text = option2.text = option3.text = value;
 			cubeImageChooser.add(option1);
 			sphereImageChooser.add(option2);
+			pyramidImageChooser.add(option3);
 		}
 	}
-
+	pyramidImageChooser.options[6].selected = true;
+	sphereImageChooser.options[15].selected = true;
 	document.getElementById("cubeImage").onchange = function () {
-		var chooseid = document.getElementById("cubeImage").value;
+		var chooseid = cubeImageChooser.value;
 		cubeImage = document.getElementById(chooseid);
 		configureCubeTexture(cubeImage);
 	};
 	document.getElementById("sphereImage").onchange = function () {
-		var chooseid = document.getElementById("sphereImage").value;
+		var chooseid = sphereImageChooser.value;
 		sphereImage = document.getElementById(chooseid);
 		configureSphereTexture(sphereImage);
 	};
-
+	document.getElementById("pyramidImage").onchange = function () {
+		var chooseid = pyramidImageChooser.value;
+		pyramidImage = document.getElementById(chooseid);
+		configurePyramidTexture(pyramidImage);
+	};
 	//Function to get the material shininess
 	function change_materialShininess() {
 		materialShininess = document.getElementById("materialshininess").value;
@@ -358,7 +473,7 @@ window.onload = function init() {
 	//Function to get the ambient light
 	function change_ambientLight() {
 		var x = document.getElementById("ambientLight").value;
-		lightAmbient = vec4(x, x, 0.1, 1.0);
+		lightAmbient = vec4(x, 0.1, 0.1, 1.0);
 		ambientProduct = mult(lightAmbient, materialAmbient);
 		gl.uniform4fv(
 			gl.getUniformLocation(program, "ambientProduct"),
@@ -397,9 +512,13 @@ window.onload = function init() {
 		if (
 			(rotationX == 0 && rotationY == 0 && rotationZ == 0) ||
 			rotationSpeed == 0
-		)
+		) {
 			rotation_animation = false;
-		else rotation_animation = true;
+			document.getElementById("rotationanimation_enabled").checked = false;
+		} else {
+			rotation_animation = true;
+			document.getElementById("rotationanimation_enabled").checked = true;
+		}
 	}
 
 	function change_Projection() {
@@ -436,6 +555,53 @@ window.onload = function init() {
 	document.getElementById("nearProjection").onchange = change_Projection;
 	document.getElementById("farProjection").onchange = change_Projection;
 
+	document.getElementById("rotationanimation_enabled").onchange = function () {
+		rotation_animation = !rotation_animation;
+	};
+	document.getElementById("sphereShown").onchange = function () {
+		state.sphereShown = !state.sphereShown;
+	};
+	document.getElementById("pyramidShown").onchange = function () {
+		state.pyramidShown = !state.pyramidShown;
+	};
+	document.getElementById("cubeShown").onchange = function () {
+		state.cubeShown = !state.cubeShown;
+	};
+
+	document.getElementById("projection_button").onclick = function () {
+		document.getElementById(
+			"projection_settings"
+		).hidden = !document.getElementById("projection_settings").hidden;
+	};
+	document.getElementById("visibility_button").onclick = function () {
+		document.getElementById("visibility").hidden = !document.getElementById(
+			"visibility"
+		).hidden;
+	};
+	document.getElementById("Texture_Shader_button").onclick = function () {
+		document.getElementById(
+			"Texture_Shader_settings"
+		).hidden = !document.getElementById("Texture_Shader_settings").hidden;
+	};
+
+	document.getElementById("TextureShown").onchange = function () {
+		if (document.getElementById("TextureShown").checked) mode_change -= 20;
+		else mode_change += 20;
+	};
+
+	document.getElementById("ShaderShown").onchange = function () {
+		if (document.getElementById("ShaderShown").checked) mode_change -= 10;
+		else mode_change += 10;
+	};
+	document.getElementById("play_button").onclick = function () {
+		if (play) document.getElementById("play_button").innerHTML = "Play";
+		else {
+			document.getElementById("play_button").innerHTML = "Pause";
+			window.requestAnimFrame(render);
+		}
+		play = !play;
+	};
+
 	gl.uniform4fv(
 		gl.getUniformLocation(program, "ambientProduct"),
 		flatten(ambientProduct)
@@ -455,14 +621,41 @@ window.onload = function init() {
 	gl.uniform1f(gl.getUniformLocation(program, "shininess"), materialShininess);
 	projectionMatrix = ortho(left, right, bottom, itop, near, far);
 	window.requestAnimFrame(render);
+
+	canvas.onmousedown = function (event) {
+		var x = event.clientX;
+		var y = event.clientY;
+		var rect = event.target.getBoundingClientRect();
+		if (rect.left <= x && x < rect.right && rect.top <= y && y < rect.bottom) {
+			state.mouse.lastX = x;
+			state.mouse.lastY = y;
+			state.dragging = true;
+		}
+	};
+	canvas.onmouseup = function () {
+		state.dragging = false;
+	};
+	canvas.onmousemove = function (event) {
+		var x = event.clientX;
+		var y = event.clientY;
+		if (state.dragging) {
+			var factor = 50 / canvas.height;
+			var dx = factor * (x - state.mouse.lastX);
+			var dy = factor * (y - state.mouse.lastY);
+
+			state.app.angle.x = state.app.angle.x + dy;
+			state.app.angle.y = state.app.angle.y + dx;
+		}
+		state.mouse.lastX = x;
+		state.mouse.lastY = y;
+	};
 };
 
 var past = 0;
 function value_updated_to_page(delta_Time) {
-	document.getElementById("delta_time").innerHTML = delta_Time;
-	var fps = Math.round((1 / delta_Time) * 100) / 100;
-
-	document.getElementById("fps").innerHTML = fps;
+	document.getElementById("delta_time").innerHTML = delta_Time.toFixed(6) + "s";
+	var fps = 1 / delta_Time;
+	document.getElementById("fps").innerHTML = fps.toFixed(2);
 }
 
 var render = function (timestamp) {
@@ -474,32 +667,57 @@ var render = function (timestamp) {
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	projectionMatrix = ortho(left, right, bottom, itop, near, far);
 	gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
-
-	//draw cube, 36 points;
-	if (start) {
-		modelViewMatrix = mult(rotationMatrix, modelViewMatrix);
-		modelViewMatrix = mult(translate(2.5, 0, 0), modelViewMatrix);
-		start = false;
-	} else {
-		modelViewMatrix = mult(translate(-2.5, 0, 0), modelViewMatrix);
+	if (state.cubeShown) {
+		//draw cube, 36 points;
+		gl.uniform1i(gl.getUniformLocation(program, "texMode"), mode_change + 0);
 		if (rotation_animation) {
 			modelViewMatrix = mult(rotationMatrix, modelViewMatrix);
 		}
+		modelViewMatrix = mult(rotateX(state.app.angle.x), modelViewMatrix);
+		modelViewMatrix = mult(rotateY(state.app.angle.y), modelViewMatrix);
 		modelViewMatrix = mult(translate(2.5, 0, 0), modelViewMatrix);
+		gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+		gl.drawArrays(gl.TRIANGLES, 0, 36);
+		modelViewMatrix = mult(translate(-2.5, 0, 0), modelViewMatrix);
 	}
-	gl.uniform1i(gl.getUniformLocation(program, "texMode"), 0);
-	gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
-	gl.drawArrays(gl.TRIANGLES, 0, 36);
-
 	// draw sphere, depends on the number of iterations
-	gl.uniform1i(gl.getUniformLocation(program, "texMode"), 1);
-	if (rotation_animation) {
-		modelViewMatrix2 = mult(rotationMatrix, modelViewMatrix2);
+	if (state.sphereShown) {
+		gl.uniform1i(gl.getUniformLocation(program, "texMode"), mode_change + 1);
+		if (rotation_animation) {
+			modelViewMatrix2 = mult(rotationMatrix, modelViewMatrix2);
+		}
+		modelViewMatrix2 = mult(rotateX(state.app.angle.x), modelViewMatrix2);
+		modelViewMatrix2 = mult(rotateY(state.app.angle.y), modelViewMatrix2);
+		gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix2));
+		for (var i = numVertices; i < index + numVertices; i += 3) {
+			gl.drawArrays(gl.TRIANGLES, i, 3);
+		}
 	}
-	gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix2));
-	//console.log(pointsArray.length);
-	for (var i = numVertices; i < index + numVertices; i += 3) {
-		gl.drawArrays(gl.TRIANGLES, i, 3);
+	if (state.pyramidShown) {
+		gl.uniform1i(gl.getUniformLocation(program, "texMode"), mode_change + 2);
+		if (rotation_animation) {
+			modelViewMatrix3 = mult(rotationMatrix, modelViewMatrix3);
+		}
+		modelViewMatrix3 = mult(rotateX(state.app.angle.x), modelViewMatrix3);
+		modelViewMatrix3 = mult(rotateY(state.app.angle.y), modelViewMatrix3);
+		modelViewMatrix3 = mult(translate(1.5, 1.5, 0), modelViewMatrix3);
+		gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix3));
+		gl.drawArrays(gl.TRIANGLES, index + numVertices, pointsArray.length);
+		modelViewMatrix3 = mult(translate(-1.5, -1.5, 0), modelViewMatrix3);
 	}
-	window.requestAnimFrame(render);
+	if (state.app.angle.x > -1 && state.app.angle.x < 1) {
+		state.app.angle.x = 0;
+	} else if (state.app.angle.x > 0) {
+		state.app.angle.x -= 1;
+	} else if (state.app.angle.x < 0) {
+		state.app.angle.x += 1;
+	}
+	if (state.app.angle.y > -1 && state.app.angle.y < 1) {
+		state.app.angle.y = 0;
+	} else if (state.app.angle.y > 0) {
+		state.app.angle.y -= 1;
+	} else if (state.app.angle.y < 0) {
+		state.app.angle.y += 1;
+	}
+	if (play) window.requestAnimFrame(render);
 };
